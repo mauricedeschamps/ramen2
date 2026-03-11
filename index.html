@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ramen Guide PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ff6b6b">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23ff6b6b'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial'%3E🍜%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      --primary-color: #ff6b6b;
+      --secondary-color: #4ecdc4;
+      --text-light: #f8f8f8;
+      --text-dark: #1e1e1e;
+      --bg-dark: #1e1e1e;
+      --bg-darker: #121212;
+      --bg-light: #2a2a2a;
+      --card-bg: #2a2a2a;
+      --card-hover: #3a3a3a;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      transition: background-color 0.3s, color 0.3s;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      text-align: center;
+      padding: 20px 0 30px 0;
+      border-bottom: 1px solid var(--bg-light);
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 2.2rem;
+      margin: 0 0 20px 0;
+      color: var(--primary-color);
+    }
+    
+    /* コントロールボタン群 - タイトルの下に配置 */
+    .control-bar {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 0 0 10px 0;
+    }
+    
+    .control-button {
+      padding: 8px 20px;
+      cursor: pointer;
+      background-color: var(--card-bg);
+      color: var(--text-light);
+      border: 1px solid var(--bg-light);
+      border-radius: 30px;
+      font-weight: bold;
+      transition: all 0.3s;
+      font-size: 0.9rem;
+    }
+    
+    .control-button:hover {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      transform: translateY(-2px);
+    }
+    
+    /* 言語切り替え用 */
+    .en, .ja {
+      transition: opacity 0.2s;
+    }
+    body.lang-en .ja {
+      display: none;
+    }
+    body.lang-ja .en {
+      display: none;
+    }
+    
+    h2 {
+      font-size: 1.6rem;
+      margin: 0 0 10px 0;
+      color: var(--secondary-color);
+      padding-bottom: 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--bg-light);
+    }
+    
+    h2::after {
+      content: '+';
+      font-size: 1.8rem;
+      transition: transform 0.3s;
+    }
+    
+    h2.active::after {
+      content: '-';
+    }
+    
+    .section {
+      margin-bottom: 20px;
+      background-color: var(--card-bg);
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      max-height: 60px;
+      transition: max-height 0.5s ease-out;
+    }
+    
+    .section.expanded {
+      max-height: 2000px;
+      overflow-y: auto;
+    }
+    
+    .content {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+      padding: 10px 0;
+    }
+    
+    .item {
+      padding: 15px;
+      background-color: var(--bg-light);
+      border-radius: 8px;
+      margin: 0;
+    }
+    
+    .item img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 5px;
+      margin-top: 10px;
+      display: block;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* ライトテーマ */
+    .light {
+      background-color: #f8f8f8;
+      color: #333;
+    }
+    
+    .light .section,
+    .light .item {
+      background-color: white;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .light .item {
+      background-color: #f0f0f0;
+    }
+    
+    .light .control-button {
+      background-color: #e0e0e0;
+      color: #333;
+      border-color: #ccc;
+    }
+    
+    .light .control-button:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    footer {
+      text-align: center;
+      padding: 20px 0;
+      margin-top: 30px;
+      border-top: 1px solid var(--bg-light);
+      background-color: var(--bg-darker);
+      font-size: 0.9rem;
+    }
+    
+    footer a {
+      color: var(--secondary-color);
+      text-decoration: none;
+    }
+    
+    .section.expanded::-webkit-scrollbar {
+      width: 8px;
+    }
+    .section.expanded::-webkit-scrollbar-track {
+      background: var(--bg-light);
+      border-radius: 10px;
+    }
+    .section.expanded::-webkit-scrollbar-thumb {
+      background: var(--primary-color);
+      border-radius: 10px;
+    }
+    
+    @media (max-width: 768px) {
+      h1 { font-size: 1.8rem; }
+      .content { grid-template-columns: 1fr; }
+      .control-bar {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .control-button {
+        width: 200px;
+      }
+    }
+  </style>
+</head>
+<body class="dark lang-en">
+  <div class="container">
+    <header>
+      <h1>
+        <span class="en">Ramen Beginner's Guide</span>
+        <span class="ja">ラーメン初心者ガイド</span>
+      </h1>
+      
+      <!-- コントロールボタンをタイトルの下に配置 -->
+      <div class="control-bar">
+        <button class="control-button" onclick="toggleTheme()">
+          <span class="en">🌙 Dark / Light</span>
+          <span class="ja">🌙 ダーク / ライト</span>
+        </button>
+        <button class="control-button" onclick="toggleLanguage()">
+          <span class="en">🇬🇧 English / 日本語</span>
+          <span class="ja">🇯🇵 日本語 / English</span>
+        </button>
+      </div>
+    </header>
+    
+    <!-- Styles -->
+    <div id="styles" class="section">
+      <h2 onclick="toggleSection('styles')">
+        <span class="en">Styles</span>
+        <span class="ja">スタイル</span>
+      </h2>
+      <div class="content">
+        <div class="item">
+          <strong><span class="en">Shoyu (Soy Sauce)</span><span class="ja">醤油</span></strong>
+          <p class="en">The oldest and most traditional ramen style with a clear, brown broth.</p>
+          <p class="ja">最も伝統的な醤油味のラーメンスタイル。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRWDkTHEmKsMME3FSNJ0hPgeJhAdSF9jHTaeiVWLAU-CM5g-pD5q0HL2gNJ&s=10" alt="Shoyu Ramen">
+        </div>
+        <div class="item">
+          <strong><span class="en">Miso (soy bean paste)</span><span class="ja">味噌</span></strong>
+          <p class="en">Rich, hearty ramen featuring a broth made with fermented soybean paste.</p>
+          <p class="ja">発酵した大豆ペーストを使った濃厚なスープ。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJwtGdxr3TXah12EvSsRDysIqE2WIYgbZm_tK9UlphdvBf-flvfwjr5-GE&s=10" alt="Miso Ramen">
+        </div>
+        <div class="item">
+          <strong><span class="en">Shio (Salt)</span><span class="ja">塩</span></strong>
+          <p class="en">A light, clear broth seasoned with salt, most delicate of ramen styles.</p>
+          <p class="ja">塩味のあっさりしたスープで最も繊細な味わい。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQFkoDT6ci1gAZaEl1ghUxWWrXraCi4Y6hATv9nEyG9Ln55EXvMKv_iWKb4&s=10" alt="Shio Ramen">
+        </div>
+        <div class="item">
+          <strong><span class="en">Tonkotsu (Pork Bone)</span><span class="ja">豚骨</span></strong>
+          <p class="en">Creamy, white broth made by boiling pork bones for hours.</p>
+          <p class="ja">豚骨を長時間煮込んで作る白濁した濃厚なスープ。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyQwY17xlfdpGefpuaHjvvh24rmDjW9cUb7ANK3qcWE2txdOPTppTaJbo&s=10" alt="Tonkotsu Ramen">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Regional -->
+    <div id="regional" class="section">
+      <h2 onclick="toggleSection('regional')">
+        <span class="en">Regional Types</span>
+        <span class="ja">ご当地ラーメン</span>
+      </h2>
+      <div class="content">
+        <div class="item">
+          <strong><span class="en">Sapporo</span><span class="ja">札幌（味噌）</span></strong>
+          <p class="en">Rich miso-based ramen, often with butter, corn, and ground pork.</p>
+          <p class="ja">濃厚な味噌スープにバターやコーンが特徴。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtms3RXHqlBkY6DY_aiw2q9q88-SqqyWw0UuFgdRzQe28sEh_iJNC-09Y&s=10" alt="Sapporo Ramen">
+        </div>
+        <div class="item">
+          <strong><span class="en">Hakata</span><span class="ja">博多（豚骨）</span></strong>
+          <p class="en">Tonkotsu broth with thin noodles. Known for "kaedama" extra noodles.</p>
+          <p class="ja">豚骨スープと細麺。「替え玉」システムで有名。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1pIOUIsWoVF_XCd0WQmgIw395aHugxfJTAqq5Rpadfs2K0YlaMvsjE9cx&s=10" alt="Hakata Ramen">
+        </div>
+        <div class="item">
+          <strong><span class="en">Tokyo</span><span class="ja">東京（醤油）</span></strong>
+          <p class="en">Classic shoyu ramen with curly noodles in clear brown broth.</p>
+          <p class="ja">醤油味の中太ちぢれ麺が特徴。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTMBxxr52L_YPGsp0vTjK9Xw2jb_91x1M59M03FYzcw-bZ8k3_Q10-mrha9&s=10" alt="Tokyo Ramen">
+        </div>
+        <div class="item">
+          <strong><span class="en">Kitakata</span><span class="ja">喜多方（平打ち麺＋醤油）</span></strong>
+          <p class="en">Flat, wide noodles in light shoyu broth with slightly sweet flavor.</p>
+          <p class="ja">平打ち太麺とあっさり醤油スープが特徴。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTr2CQGD2DUQGILd0BRL-dNDZRw930paVJZ23OZKpfbN1wlNE7jdIB9ar50&s=10" alt="Kitakata Ramen">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Soup -->
+    <div id="soup" class="section">
+      <h2 onclick="toggleSection('soup')">
+        <span class="en">Soup Base</span>
+        <span class="ja">スープ</span>
+      </h2>
+      <div class="content">
+        <div class="item">
+          <strong><span class="en">Chicken</span><span class="ja">鶏ガラ</span></strong>
+          <p class="en">Light yet flavorful broth made from chicken bones.</p>
+          <p class="ja">鶏の骨から取るあっさりしたスープ。</p>
+          <img src="https://recipe.r10s.jp/recipe-space/d/strg/ctrl/3/32ae65262b5fa41acfd27b805aafd8f7adb0df63.70.2.3.2.jpg?interpolation=lanczos-none&fit=around|600:600&crop=600:600;*,*" alt="Chicken Soup">
+        </div>
+        <div class="item">
+          <strong><span class="en">Pork Bone</span><span class="ja">豚骨</span></strong>
+          <p class="en">Rich, creamy broth made by boiling pork bones.</p>
+          <p class="ja">豚骨を長時間煮込んで作る濃厚なスープ。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-MYXCuFrcdRQp2ExJ0VIPolylaC9SODWLD9eh-tmXpqJS6uGZw3Rmafs&s=10" alt="Pork Bone Soup">
+        </div>
+        <div class="item">
+          <strong><span class="en">Fish</span><span class="ja">魚介</span></strong>
+          <p class="en">Broth made from dried fish, creating deep umami flavor.</p>
+          <p class="ja">煮干しなど魚介類から取る出汁。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUHOpcwcpvYd-V9TEJg1Mww3JPe1TVjv4Ch8U1-znhgW4PKGr9u7B_f9M&s=10" alt="Fish Soup">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Noodles -->
+    <div id="noodles" class="section">
+      <h2 onclick="toggleSection('noodles')">
+        <span class="en">Noodle Types</span>
+        <span class="ja">麺の種類</span>
+      </h2>
+      <div class="content">
+        <div class="item">
+          <strong><span class="en">Thin</span><span class="ja">細麺</span></strong>
+          <p class="en">Thin, straight noodles that cook quickly.</p>
+          <p class="ja">細くてストレートな麺。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRKLsRNnUodu_BcWUh6iCtRBaONfX_jamN4sP0-WtGH_zZ7vsHsmMtVOu77&s=10" alt="Thin Noodles">
+        </div>
+        <div class="item">
+          <strong><span class="en">Thick</span><span class="ja">太麺</span></strong>
+          <p class="en">Thick, chewy noodles for rich broths.</p>
+          <p class="ja">太くてコシのある麺。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT4A-wwwulpNCpkV6G5jOw8PTPxMf10HG-UN39Jbpw9KeVy5rAng2HdMVB5&s=10" alt="Thick Noodles">
+        </div>
+        <div class="item">
+          <strong><span class="en">Wavy</span><span class="ja">ちぢれ麺</span></strong>
+          <p class="en">Curly noodles that hold more broth.</p>
+          <p class="ja">ちぢれた形状でスープをよく絡める。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSfUJDw3UsKF2j3t1dqBOH1ilwMwB2ingRIsA3dXhEj2mkPt7Wb177If0&s=10" alt="Wavy Noodles">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Toppings -->
+    <div id="toppings" class="section">
+      <h2 onclick="toggleSection('toppings')">
+        <span class="en">Toppings</span>
+        <span class="ja">トッピング</span>
+      </h2>
+      <div class="content">
+        <div class="item">
+          <strong><span class="en">Chashu (Pork slices)</span><span class="ja">チャーシュー</span></strong>
+          <p class="en">Braised or roasted pork belly or shoulder.</p>
+          <p class="ja">豚バラや肩ロースを煮込んだり焼いたりしたもの。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSwV0Cg46tqRjI6sXZAeV5UV6HhUhNIz0Aj2BVUG0vUxonjo5tYOr7jWZw&s=10" alt="Chashu">
+        </div>
+        <div class="item">
+          <strong><span class="en">Nori (Seaweed)</span><span class="ja">海苔</span></strong>
+          <p class="en">Dried seaweed sheets that add umami flavor.</p>
+          <p class="ja">うま味を加える乾燥海苔。</p>
+          <img src="https://www.satofull.jp/upload/save_image/659/065900002/1088621_04_1630543776.jpg" alt="Nori">
+        </div>
+        <div class="item">
+          <strong><span class="en">Menma (Bamboo shoots)</span><span class="ja">メンマ</span></strong>
+          <p class="en">Fermented bamboo shoots with unique texture.</p>
+          <p class="ja">発酵させた竹の子のシャキシャキ食感。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxyQH8FCSkAkXNa6cAhiz5_KSOXffgQObXEAHTYlpGWEaHjso15YLXlzU&s=10" alt="Menma">
+        </div>
+        <div class="item">
+          <strong><span class="en">Negi (Green onion)</span><span class="ja">ネギ</span></strong>
+          <p class="en">Finely chopped green onions for fresh flavor.</p>
+          <p class="ja">新鮮な風味を加える刻みネギ。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTpv9ODxBF4arUf5GJTnEPRXVohR8FsrzwX4NF-aeOFnXKXRkdbc7aHFt4w&s=10" alt="Negi">
+        </div>
+        <div class="item">
+          <strong><span class="en">Naruto (Fish paste)</span><span class="ja">ナルト</span></strong>
+          <p class="en">Pink-swirled fish cake with mild flavor.</p>
+          <p class="ja">ピンクの渦巻き模様の蒲鉾。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJSHooL5_zBt5s-FPfujtAE-EaPUE_beEftp2JYIt01Elf2HOOEJXK6QbB&s=10" alt="Naruto">
+        </div>
+        <div class="item">
+          <strong><span class="en">Boiled Egg</span><span class="ja">煮玉子</span></strong>
+          <p class="en">Soft-boiled egg with creamy yolk.</p>
+          <p class="ja">半熟の黄身が特徴の味付け玉子。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSKcfPpiHLWv6rGQc7N5ToMDVU0y0rnjONoIvMQwmeWNXhneGETBKdFzPr_&s=10" alt="Boiled Egg">
+        </div>
+        <div class="item">
+          <strong><span class="en">Corn and Butter</span><span class="ja">コーン＆バター</span></strong>
+          <p class="en">Sweet corn with melting butter for richness.</p>
+          <p class="ja">甘いコーンと溶けるバターの組み合わせ。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0ivHwH3bobpFOTyMVtk4AfcGguso1dJP2alNE3F15Ln3OrvGRFJJghUbJ&s=10" alt="Corn and Butter">
+        </div>
+        <div class="item">
+          <strong><span class="en">Wood Ear Mushroom</span><span class="ja">きくらげ</span></strong>
+          <p class="en">Crunchy black fungus with mild flavor.</p>
+          <p class="ja">食感が楽しい黒いキノコ。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShYMe6y2tfpP_RPxn64gvlrxzLkaFoLyrvha0L9u9gIxy4s8tDVqGpzpY&s=10" alt="Wood Ear Mushroom">
+        </div>
+        <div class="item">
+          <strong><span class="en">Red Pickled Ginger</span><span class="ja">紅生姜</span></strong>
+          <p class="en">Bright red pickled ginger for tangy flavor.</p>
+          <p class="ja">さっぱりとした酸味の赤い生姜。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQPaxBvxB0o6RPITm4m-e32H6WPfTzfGf3vsATx0qU4WYRqiPMdQmQv_OA&s=10" alt="Red Pickled Ginger">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Other -->
+    <div id="other" class="section">
+      <h2 onclick="toggleSection('other')">
+        <span class="en">Other Notable Types</span>
+        <span class="ja">その他の種類</span>
+      </h2>
+      <div class="content">
+        <div class="item">
+          <strong><span class="en">Tanmen</span><span class="ja">タンメン</span></strong>
+          <p class="en">Light, salt-based ramen with stir-fried vegetables.</p>
+          <p class="ja">塩味ベースで炒め野菜がのったあっさり系。</p>
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXpkKIkkB35Tr4fgouPhCNrAaaAlwV5XqWUKQIFoWKnStAySytpXlRm5o&s=10" alt="Tanmen">
+        </div>
+        <div class="item">
+          <strong><span class="en">Tantanmen</span><span class="ja">担々麺</span></strong>
+          <p class="en">Spicy ramen with ground pork, sesame paste, and chili oil.</p>
+          <p class="ja">ひき肉・ゴマ・ラー油を使った辛いラーメン。</p>
+          <img src="https://park.ajinomoto.co.jp/wp-content/uploads/2018/03/707202.jpeg" alt="Tantanmen">
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <p><span class="en">Contact me</span><span class="ja">お問い合わせ</span></p>
+    <p><a href="mailto:mementomorikatsu@gmail.com">mementomorikatsu@gmail.com</a></p>
+  </footer>
+  
+  <script>
+    function toggleTheme() {
+      document.body.classList.toggle('light');
+      document.body.classList.toggle('dark');
+    }
+    
+    function toggleLanguage() {
+      document.body.classList.toggle('lang-en');
+      document.body.classList.toggle('lang-ja');
+    }
+    
+    function toggleSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      document.querySelectorAll('.section.expanded').forEach(sec => {
+        if (sec.id !== sectionId) {
+          sec.classList.remove('expanded');
+          sec.querySelector('h2').classList.remove('active');
+        }
+      });
+      section.classList.toggle('expanded');
+      section.querySelector('h2').classList.toggle('active');
+      if (section.classList.contains('expanded')) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    
+    // 初期状態: 全セクション閉、言語は英語
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('expanded');
+        section.querySelector('h2').classList.remove('active');
+      });
+    });
+    
+    // サービスワーカー登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('ServiceWorker registered'))
+          .catch(err => console.log('ServiceWorker error: ', err));
+      });
+    }
+  </script>
+</body>
+</html>
